@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ -f /.dockerenv ] || [ -f /run/.containerenv ] || [ -n "${DEVCONTAINER:-}" ] || [ -n "${REMOTE_CONTAINERS:-}" ]; then
+    echo "dca is a host control-plane command. Run it from the host, not inside a devcontainer."
+    exit 1
+fi
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: dca <workspace-name>"
+    exit 2
+fi
+
+if ! command -v devpod >/dev/null 2>&1; then
+    echo "DevPod CLI is required but was not found on PATH."
+    exit 1
+fi
+
+if ! command -v tmux >/dev/null 2>&1; then
+    echo "tmux is required but was not found on PATH."
+    exit 1
+fi
+
+name="$1"
+
+tmux new-session -A -s "$name" "devpod ssh $name"
