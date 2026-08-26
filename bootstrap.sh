@@ -3,6 +3,8 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bin_dir="${HOME}/bin"
+dotfiles_repo="${DOTFILES_REPO:-https://github.com/philbudden/dotfiles.git}"
+dotfiles_dir="${DOTFILES_DIR:-${HOME}/Developer/dotfiles}"
 
 if ! command -v brew >/dev/null 2>&1; then
     echo "Homebrew is required before running this bootstrap."
@@ -10,7 +12,31 @@ if ! command -v brew >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "Installing host control-plane tools from Brewfile..."
+if ! command -v git >/dev/null 2>&1; then
+    echo "git is required before running this bootstrap."
+    exit 1
+fi
+
+if [ ! -d "${dotfiles_dir}" ]; then
+    mkdir -p "$(dirname "${dotfiles_dir}")"
+    echo "Cloning dotfiles into ${dotfiles_dir}..."
+    git clone "${dotfiles_repo}" "${dotfiles_dir}"
+elif [ -d "${dotfiles_dir}/.git" ]; then
+    current_remote="$(git -C "${dotfiles_dir}" remote get-url origin 2>/dev/null || true)"
+    if [ "${current_remote}" = "${dotfiles_repo}" ]; then
+        echo "Updating dotfiles..."
+        git -C "${dotfiles_dir}" pull --ff-only
+    else
+        echo "Using existing dotfiles at ${dotfiles_dir} with origin: ${current_remote}"
+    fi
+else
+    echo "Using existing dotfiles directory at ${dotfiles_dir}"
+fi
+
+echo "Applying shared dotfiles baseline..."
+"${dotfiles_dir}/bootstrap.sh"
+
+echo "Installing host-only control-plane tools from Brewfile..."
 brew bundle --file "${repo_dir}/Brewfile"
 
 if ! command -v devpod >/dev/null 2>&1; then

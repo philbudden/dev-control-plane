@@ -1,9 +1,3 @@
-brew "bat"
-brew "fd"
-brew "fzf"
-brew "gh"
-brew "jq"
+# Host-only terminal tools layered on top of ~/Developer/dotfiles.
 brew "lazydocker"
-brew "ripgrep"
 brew "tmux"
-brew "zoxide"

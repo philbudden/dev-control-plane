@@ -2,21 +2,22 @@
 
 Terminal-only host control-plane setup for the terminal-native development workflow.
 
-This repository is intentionally separate from the devcontainer dotfiles repo. It prepares the host-side tools and commands used to create, start, attach to, and deliberately recreate development containers. Homebrew is a prerequisite and is not installed by this repo.
+This repository is intentionally separate from the dotfiles repo. It prepares the host-side tools and commands used to create, start, attach to, and deliberately recreate development containers. Homebrew is a prerequisite and is not installed by this repo.
 
 ## Scope
 
 This repo manages:
 
-- Cross-platform host CLI tools through Homebrew.
+- The existing `~/Developer/dotfiles` baseline on the host.
+- Host-only terminal tools through Homebrew.
 - Small host-side wrapper commands for DevPod CLI workflows.
-- The control-plane layer for `terminal -> devcontainer -> tmux -> Neovim`.
+- The control-plane layer for `terminal -> tmux -> devcontainer -> Neovim`.
 
 This repo does not manage:
 
 - GUI applications such as Ghostty.
 - DevPod GUI.
-- Host shell dotfiles.
+- Host shell dotfiles directly; those remain owned by `~/Developer/dotfiles`.
 - Neovim configuration.
 - SSH private keys.
 - Docker Desktop, OrbStack, Docker Engine, or WSL provisioning.
@@ -40,7 +41,15 @@ cd ~/Developer/dev-control-plane
 ./bootstrap.sh
 ```
 
-`bootstrap.sh` expects Homebrew to already be installed. It runs:
+`bootstrap.sh` expects Homebrew to already be installed. It first clones or updates `~/Developer/dotfiles` and runs:
+
+```bash
+~/Developer/dotfiles/bootstrap.sh
+```
+
+That applies the shared CLI, shell, Git, Starship and Neovim baseline from the same repo used inside devcontainers.
+
+Then it runs this repo's host-only package layer:
 
 ```bash
 brew bundle --file Brewfile
@@ -50,21 +59,46 @@ Then it links scripts from `bin/` into `~/bin` when there is no existing non-sym
 
 DevPod CLI is also required for the wrapper commands, but it is not installed by this bootstrap. The current Homebrew `devpod` package is a cask for the DevPod UI app, so this repo deliberately avoids it. Install the CLI-only DevPod binary using the official DevPod CLI install instructions, then use this repo for the rest of the host terminal control plane.
 
-## Packages
+The dotfiles location can be overridden when testing:
 
-The initial shared host baseline is:
+```bash
+DOTFILES_DIR=~/Developer/dotfiles ./bootstrap.sh
+```
+
+The dotfiles source can also be overridden:
+
+```bash
+DOTFILES_REPO=https://github.com/example/dotfiles.git ./bootstrap.sh
+```
+
+## Shared Packages From Dotfiles
+
+The shared baseline is installed from `~/Developer/dotfiles/Brewfile`. It includes tools such as:
 
 - `bat`
 - `fd`
 - `fzf`
 - `gh`
 - `jq`
-- `lazydocker`
+- `lazygit`
+- `neovim`
 - `ripgrep`
-- `tmux`
+- `starship`
+- `stow`
+- `unzip`
+- `zip`
 - `zoxide`
 
-Keep this list limited to terminal-native tools that make sense on both macOS and WSL2 via Homebrew.
+Add shared CLI tools there, not here, so the host and devcontainer baselines do not drift.
+
+## Host-Only Packages
+
+This repo's `Brewfile` should contain only tools that make sense on the host/control plane but not in every devcontainer. The current host-only package is:
+
+- `lazydocker`
+- `tmux`
+
+Host `tmux` is part of the host control-plane requirement because project sessions live on the host side of the DevPod attach workflow. It is deliberately not installed by the devcontainer dotfiles baseline.
 
 DevPod CLI is intentionally absent from the Homebrew baseline until there is a CLI-only Homebrew package. Do not replace it with the DevPod GUI cask.
 
