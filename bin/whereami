@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+session_name="${1:-${TMUX_SESSION:-}}"
+pane_path="${2:-${PWD:-}}"
+workspace_name="${3:-}"
+
+platform="linux"
+if [ "$(uname -s)" = "Darwin" ]; then
+    platform="mac"
+elif grep -qi microsoft /proc/version 2>/dev/null; then
+    platform="wsl"
+fi
+
+location="host"
+if [ -n "${CODESPACES:-}" ]; then
+    location="codespaces"
+elif [ -n "$workspace_name" ]; then
+    location="devpod"
+elif [ -n "${DEVCONTAINER:-}" ] || [ -n "${REMOTE_CONTAINERS:-}" ] || [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
+    location="devcontainer"
+fi
+
+context=""
+if [ -n "$workspace_name" ]; then
+    context="$workspace_name"
+elif [ -n "$session_name" ]; then
+    context="$session_name"
+elif [ -d "${pane_path}/.git" ]; then
+    context="$(basename "$pane_path")"
+elif git -C "$pane_path" rev-parse --show-toplevel >/dev/null 2>&1; then
+    context="$(basename "$(git -C "$pane_path" rev-parse --show-toplevel)")"
+else
+    context="$(basename "$pane_path")"
+fi
+
+if [ -n "$context" ]; then
+    printf "%s | %s | %s\n" "$platform" "$location" "$context"
+else
+    printf "%s | %s\n" "$platform" "$location"
+fi

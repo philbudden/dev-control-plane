@@ -25,6 +25,7 @@ name="$1"
 attach_cmd="devpod ssh $name"
 
 if tmux has-session -t "$name" 2>/dev/null; then
+    tmux set-option -t "$name" -q @dev_control_workspace "$name"
     if [ -n "${TMUX:-}" ]; then
         exec tmux switch-client -t "$name"
     fi
@@ -38,6 +39,7 @@ tmux new-window -t "$name:" -n docker
 tmux new-window -t "$name:" -n ai "$attach_cmd"
 tmux new-window -t "$name:" -n review "$attach_cmd"
 tmux new-window -t "$name:" -n run "$attach_cmd"
+tmux set-option -t "$name" -q @dev_control_workspace "$name"
 tmux select-window -t "$name:1"
 
 if [ -n "${TMUX:-}" ]; then

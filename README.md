@@ -162,12 +162,37 @@ The first version deliberately starts attached shells rather than automatically 
 
 When `dca` is run from inside an existing tmux session, it uses `tmux switch-client` rather than nesting tmux inside tmux.
 
+### `whereami`
+
+Print the compact environment token used by the tmux status bar:
+
+```bash
+whereami
+```
+
+Typical output:
+
+```text
+mac | devpod | neovim-config
+wsl | host | ingest
+linux | devcontainer | neovim-config
+```
+
+In normal project sessions this is called by tmux as:
+
+```bash
+whereami <tmux-session-name> <pane-current-path>
+```
+
+`dca` marks project sessions with a tmux session option so the status bar can show `devpod` for DevPod-backed sessions even though tmux itself is running on the host. For non-project sessions, the script falls back to the tmux session name, current Git repository basename or current directory basename.
+
 ## Tmux
 
 The host tmux configuration lives at `config/tmux/tmux.conf` and is linked by bootstrap.
 
 Key choices:
 
+- Status left shows `platform | location | context`, for example `mac | host | neovim-config`.
 - Prefix remains the default `C-b`, matching unconfigured remote tmux hosts.
 - Windows and panes start at `1`.
 - Mouse mode is off.
