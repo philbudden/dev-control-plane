@@ -168,14 +168,14 @@ The host tmux configuration lives at `config/tmux/tmux.conf` and is linked by bo
 
 Key choices:
 
-- Prefix is `C-a`.
+- Prefix remains the default `C-b`, matching unconfigured remote tmux hosts.
 - Windows and panes start at `1`.
 - Mouse mode is off.
 - Copy mode uses vi keys.
-- `C-a h` and `C-a l` move to previous/next windows.
-- `C-a s` opens the session/window tree.
-- `C-a p` switches back to the last client.
-- `C-a r` reloads `~/.config/tmux/tmux.conf`.
+- `C-b h` and `C-b l` move to previous/next windows.
+- `C-b s` opens the session/window tree.
+- `C-b p` switches back to the last client.
+- `C-b r` reloads `~/.config/tmux/tmux.conf`.
 
 ### `dcr`
 
