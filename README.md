@@ -57,6 +57,14 @@ brew bundle --file Brewfile
 
 Then it links scripts from `bin/` into `~/bin` when there is no existing non-symlink file in the way.
 
+It also links the host tmux configuration to:
+
+```bash
+~/.config/tmux/tmux.conf
+```
+
+If that file already exists and is not a symlink, bootstrap leaves it alone.
+
 DevPod CLI is also required for the wrapper commands, but it is not installed by this bootstrap. The current Homebrew `devpod` package is a cask for the DevPod UI app, so this repo deliberately avoids it. Install the CLI-only DevPod binary using the official DevPod CLI install instructions, then use this repo for the rest of the host terminal control plane.
 
 The dotfiles location can be overridden when testing:
@@ -135,8 +143,39 @@ dca neovim-config
 This runs:
 
 ```bash
-tmux new-session -A -s <name> "devpod ssh <name>"
+tmux attach-session -t <name>
 ```
+
+If the session does not already exist, `dca` creates a host tmux session with these standard windows:
+
+```text
+1 edit      devpod ssh <name>
+2 shell     devpod ssh <name>
+3 git       devpod ssh <name>
+4 docker    host shell
+5 ai        devpod ssh <name>
+6 review    devpod ssh <name>
+7 run       devpod ssh <name>
+```
+
+The first version deliberately starts attached shells rather than automatically launching `nvim`, `lazygit`, Copilot or CodeRabbit. That keeps the attach path simple while proving the tmux session/window model.
+
+When `dca` is run from inside an existing tmux session, it uses `tmux switch-client` rather than nesting tmux inside tmux.
+
+## Tmux
+
+The host tmux configuration lives at `config/tmux/tmux.conf` and is linked by bootstrap.
+
+Key choices:
+
+- Prefix is `C-a`.
+- Windows and panes start at `1`.
+- Mouse mode is off.
+- Copy mode uses vi keys.
+- `C-a h` and `C-a l` move to previous/next windows.
+- `C-a s` opens the session/window tree.
+- `C-a p` switches back to the last client.
+- `C-a r` reloads `~/.config/tmux/tmux.conf`.
 
 ### `dcr`
 

@@ -22,5 +22,26 @@ if ! command -v tmux >/dev/null 2>&1; then
 fi
 
 name="$1"
+attach_cmd="devpod ssh $name"
 
-tmux new-session -A -s "$name" "devpod ssh $name"
+if tmux has-session -t "$name" 2>/dev/null; then
+    if [ -n "${TMUX:-}" ]; then
+        exec tmux switch-client -t "$name"
+    fi
+    exec tmux attach-session -t "$name"
+fi
+
+tmux new-session -d -s "$name" -n edit "$attach_cmd"
+tmux new-window -t "$name:" -n shell "$attach_cmd"
+tmux new-window -t "$name:" -n git "$attach_cmd"
+tmux new-window -t "$name:" -n docker
+tmux new-window -t "$name:" -n ai "$attach_cmd"
+tmux new-window -t "$name:" -n review "$attach_cmd"
+tmux new-window -t "$name:" -n run "$attach_cmd"
+tmux select-window -t "$name:1"
+
+if [ -n "${TMUX:-}" ]; then
+    exec tmux switch-client -t "$name"
+fi
+
+exec tmux attach-session -t "$name"
