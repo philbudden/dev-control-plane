@@ -22,7 +22,17 @@ This repo does not manage:
 - Docker Desktop, OrbStack, Docker Engine, or WSL provisioning.
 - Project-specific devcontainer definitions.
 
-## Install
+## Prerequisites
+
+Install these on the host before using this repo:
+
+- Homebrew, used by `bootstrap.sh` to install the cross-platform terminal tool baseline.
+- Docker, Docker Desktop, OrbStack, or another Docker-compatible runtime supported by DevPod CLI.
+- DevPod CLI, installed from the official CLI-only install path rather than the DevPod GUI cask.
+
+This repo does not install these prerequisites. It also does not configure Rosetta 2 or x86 container support in virtualised environments.
+
+## Bootstrap
 
 ```bash
 git clone https://github.com/philbudden/dev-control-plane.git ~/Developer/dev-control-plane
