@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ -f /.dockerenv ] || [ -f /run/.containerenv ] || [ -n "${DEVCONTAINER:-}" ] || [ -n "${REMOTE_CONTAINERS:-}" ]; then
+    echo "dcauth is a host control-plane command. Run it from the host, not inside a devcontainer."
+    exit 1
+fi
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: dcauth <workspace-name>"
+    exit 2
+fi
+
+if ! command -v devpod >/dev/null 2>&1; then
+    echo "DevPod CLI is required but was not found on PATH."
+    exit 1
+fi
+
+name="$1"
+
+devpod ssh "$name" <<'AUTH_CHECK'
+set +e
+
+section() {
+    printf "\n== %s ==\n" "$1"
+}
+
+check_command() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+redact_url() {
+    printf "%s" "$1" | sed -E 's#(https?://)[^/@]+(:[^/@]+)?@#\1***@#'
+}
+
+section "Environment"
+printf "USER=%s\n" "${USER:-unknown}"
+printf "PWD=%s\n" "$PWD"
+printf "SHELL=%s\n" "${SHELL:-unknown}"
+if [ -n "${SSH_AUTH_SOCK:-}" ]; then
+    printf "SSH_AUTH_SOCK=%s\n" "$SSH_AUTH_SOCK"
+else
+    printf "SSH_AUTH_SOCK=missing\n"
+fi
+
+section "Git"
+if check_command git; then
+    git --version
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        printf "Repository: %s\n" "$(basename "$(git rev-parse --show-toplevel)")"
+        for remote in $(git remote); do
+            url="$(git remote get-url "$remote" 2>/dev/null || true)"
+            if [ -n "$url" ]; then
+                printf "%s %s\n" "$remote" "$(redact_url "$url")"
+            fi
+        done
+        git fetch --dry-run
+        printf "git_fetch_dry_run_exit=%s\n" "$?"
+    else
+        printf "Not inside a Git work tree.\n"
+    fi
+else
+    printf "git=missing\n"
+fi
+
+section "SSH agent"
+if check_command ssh-add; then
+    ssh-add -l
+    printf "ssh_add_exit=%s\n" "$?"
+else
+    printf "ssh-add=missing\n"
+fi
+
+section "GitHub CLI"
+if check_command gh; then
+    gh --version | head -n 1
+    gh auth status
+    printf "gh_auth_status_exit=%s\n" "$?"
+else
+    printf "gh=missing\n"
+fi
+
+section "GitHub Copilot CLI"
+if check_command copilot; then
+    copilot --version
+    printf "copilot_exit=%s\n" "$?"
+else
+    printf "copilot=missing\n"
+fi
+
+section "CodeRabbit CLI"
+if check_command cr; then
+    cr --version
+    printf "cr_version_exit=%s\n" "$?"
+else
+    printf "cr=missing\n"
+fi
+AUTH_CHECK

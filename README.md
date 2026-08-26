@@ -186,6 +186,26 @@ whereami <tmux-session-name> <pane-current-path>
 
 `dca` marks project sessions with a tmux session option so the status bar can show `devpod` for DevPod-backed sessions even though tmux itself is running on the host. For non-project sessions, the script falls back to the tmux session name, current Git repository basename or current directory basename.
 
+### `dcauth`
+
+Run read-only authentication diagnostics inside a DevPod workspace:
+
+```bash
+dcauth neovim-config
+```
+
+The check reports:
+
+- basic workspace shell context;
+- whether `SSH_AUTH_SOCK` is present;
+- Git remotes and `git fetch --dry-run`;
+- `ssh-add -l`;
+- `gh auth status`;
+- Copilot CLI presence/version;
+- CodeRabbit CLI presence/version.
+
+This command is deliberately diagnostic. It does not copy credentials, write tokens, run login flows, or change Git configuration. Use it before and after stopping/starting or deliberately recreating a workspace to see which authentication state survives.
+
 ## Tmux
 
 The host tmux configuration lives at `config/tmux/tmux.conf` and is linked by bootstrap.
@@ -242,3 +262,9 @@ dca neovim-config
 ```
 
 Inside the attached workspace, confirm the devcontainer dotfiles bootstrap has provided the inner environment.
+
+Then check authentication propagation:
+
+```bash
+dcauth neovim-config
+```
