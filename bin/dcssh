@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ -f /.dockerenv ] || [ -f /run/.containerenv ] || [ -n "${DEVCONTAINER:-}" ] || [ -n "${REMOTE_CONTAINERS:-}" ]; then
+    echo "dcssh is a host control-plane command. Run it from the host, not inside a devcontainer."
+    exit 1
+fi
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: dcssh <workspace-name> [devpod ssh options]"
+    exit 2
+fi
+
+if ! command -v devpod >/dev/null 2>&1; then
+    echo "DevPod CLI is required but was not found on PATH."
+    exit 1
+fi
+
+name="$1"
+shift
+
+send_env=(--send-env GH_PROMPT_DISABLED)
+github_token=""
+
+if command -v gh >/dev/null 2>&1; then
+    if github_token="$(gh auth token 2>/dev/null)" && [ -n "$github_token" ]; then
+        export GH_TOKEN="$github_token"
+        export COPILOT_GITHUB_TOKEN="$github_token"
+        send_env+=(--send-env GH_TOKEN --send-env COPILOT_GITHUB_TOKEN)
+    else
+        echo "Host GitHub CLI is not authenticated; GitHub CLI and Copilot auth will not be bridged into the workspace." >&2
+    fi
+else
+    echo "Host GitHub CLI is missing; GitHub CLI and Copilot auth will not be bridged into the workspace." >&2
+fi
+
+export GH_PROMPT_DISABLED=1
+
+exec devpod ssh --silent --agent-forwarding=true "${send_env[@]}" "$name" "$@"
