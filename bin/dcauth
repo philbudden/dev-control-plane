@@ -19,6 +19,49 @@ fi
 name="$1"
 agent_forwarding="${DCAUTH_AGENT_FORWARDING:-true}"
 
+set +e
+
+section() {
+    printf "\n== %s ==\n" "$1"
+}
+
+check_command() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+section "Host preflight"
+printf "USER=%s\n" "${USER:-unknown}"
+printf "PWD=%s\n" "$PWD"
+if [ -n "${SSH_AUTH_SOCK:-}" ]; then
+    printf "SSH_AUTH_SOCK=%s\n" "$SSH_AUTH_SOCK"
+else
+    printf "SSH_AUTH_SOCK=missing\n"
+fi
+
+if check_command ssh-add; then
+    ssh-add -l 2>&1
+    printf "host_ssh_add_exit=%s\n" "$?"
+else
+    printf "ssh-add=missing\n"
+fi
+
+if check_command ssh; then
+    ssh -o BatchMode=yes -T git@github.com 2>&1
+    printf "host_ssh_github_exit=%s\n" "$?"
+else
+    printf "ssh=missing\n"
+fi
+
+if check_command gh; then
+    gh --version | head -n 1
+    gh auth status 2>&1
+    printf "host_gh_auth_status_exit=%s\n" "$?"
+else
+    printf "gh=missing\n"
+fi
+
+set -e
+
 remote_script="$(cat <<'AUTH_CHECK'
 set +e
 
