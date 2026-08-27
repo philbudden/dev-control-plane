@@ -174,6 +174,8 @@ The `edit`, `git`, `ai` and `review` windows initialise the workspace shell PATH
 
 The `run` window is a spare workspace shell for commands that are expected to occupy the terminal, such as test runs, app servers, REPLs or logs. Keeping it separate leaves `shell` available for ordinary navigation and one-off commands.
 
+Fresh devcontainers that have not yet run the dotfiles bootstrap may not have Neovim, LazyGit, Copilot CLI or CodeRabbit CLI installed. In that state, `shell` and `run` should still attach to the workspace; the tool-specific windows will show the missing tool and fall back to a workspace shell.
+
 When `dca` is run from inside an existing tmux session, it uses `tmux switch-client` rather than nesting tmux inside tmux.
 
 ### `dcssh`
