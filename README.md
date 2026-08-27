@@ -171,7 +171,7 @@ If the session does not already exist, `dca` creates a host tmux session with th
 7 run       dcssh <name>
 ```
 
-The `ai` and `review` windows launch GitHub Copilot CLI and CodeRabbit CLI when those tools are installed in the workspace. If a tool is missing, the window reports that and falls back to a workspace shell. CodeRabbit authentication is not configured by bootstrap; the review window only proves the terminal-native review surface is available.
+The `ai` and `review` windows initialise the workspace shell PATH before launching GitHub Copilot CLI and CodeRabbit CLI. This matters because DevPod command mode does not load the interactive shell startup files. If a tool is missing, the window reports that and falls back to a workspace shell. CodeRabbit authentication is not configured by bootstrap; the review window only proves the terminal-native review surface is available.
 
 When `dca` is run from inside an existing tmux session, it uses `tmux switch-client` rather than nesting tmux inside tmux.
 
