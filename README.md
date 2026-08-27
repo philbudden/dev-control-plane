@@ -193,6 +193,12 @@ When the host GitHub CLI token is usable by both GitHub CLI and GitHub Copilot C
 
 The command does not run `gh auth login` in the workspace and does not write GitHub credentials into the container image, dotfiles, or repository. If the host has `COPILOT_GITHUB_TOKEN` set to a supported token, that token is forwarded for Copilot. If the host GitHub CLI token is classic and no supported Copilot token is available, the workspace still opens with SSH agent forwarding but GitHub CLI and Copilot CLI do not receive token-based authentication from `dcssh`.
 
+`dcssh` keeps routine attach output quiet. To see token-type decisions while debugging, run:
+
+```bash
+DCSSH_AUTH_DEBUG=true dcssh neovim-config
+```
+
 To deliberately forward a classic host GitHub token for GitHub CLI-only work, run:
 
 ```bash
