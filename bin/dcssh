@@ -21,17 +21,55 @@ shift
 
 send_env=(--send-env GH_PROMPT_DISABLED)
 github_token=""
+host_copilot_token="${COPILOT_GITHUB_TOKEN:-}"
+forward_classic_gh_token="${DCSSH_FORWARD_CLASSIC_GH_TOKEN:-false}"
+
+token_type() {
+    case "$1" in
+        github_pat_*) printf "fine-grained-pat" ;;
+        gho_*) printf "oauth" ;;
+        ghu_*) printf "github-app-user" ;;
+        ghp_*) printf "classic-pat" ;;
+        "") printf "missing" ;;
+        *) printf "unknown" ;;
+    esac
+}
+
+is_copilot_token_supported() {
+    case "$1" in
+        github_pat_*|gho_*|ghu_*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
 
 if command -v gh >/dev/null 2>&1; then
     if github_token="$(gh auth token 2>/dev/null)" && [ -n "$github_token" ]; then
-        export GH_TOKEN="$github_token"
-        export COPILOT_GITHUB_TOKEN="$github_token"
-        send_env+=(--send-env GH_TOKEN --send-env COPILOT_GITHUB_TOKEN)
+        if is_copilot_token_supported "$github_token"; then
+            export GH_TOKEN="$github_token"
+            send_env+=(--send-env GH_TOKEN)
+        elif [ "$forward_classic_gh_token" = "true" ]; then
+            export GH_TOKEN="$github_token"
+            send_env+=(--send-env GH_TOKEN)
+            echo "Forwarding classic GH_TOKEN by request; Copilot CLI will reject it if no supported Copilot token is present." >&2
+        fi
     else
         echo "Host GitHub CLI is not authenticated; GitHub CLI and Copilot auth will not be bridged into the workspace." >&2
     fi
 else
     echo "Host GitHub CLI is missing; GitHub CLI and Copilot auth will not be bridged into the workspace." >&2
+fi
+
+if is_copilot_token_supported "$host_copilot_token"; then
+    export COPILOT_GITHUB_TOKEN="$host_copilot_token"
+    send_env+=(--send-env COPILOT_GITHUB_TOKEN)
+elif is_copilot_token_supported "$github_token"; then
+    export COPILOT_GITHUB_TOKEN="$github_token"
+    send_env+=(--send-env COPILOT_GITHUB_TOKEN)
+elif [ -n "$github_token" ]; then
+    echo "Host GitHub CLI token is $(token_type "$github_token"); Copilot CLI requires an OAuth, GitHub App user, or fine-grained PAT token." >&2
+    echo "Not forwarding the classic token by default because Copilot CLI also reads GH_TOKEN." >&2
+elif [ -n "$host_copilot_token" ]; then
+    echo "Host COPILOT_GITHUB_TOKEN is $(token_type "$host_copilot_token"); not forwarding it because Copilot CLI rejects that token type." >&2
 fi
 
 export GH_PROMPT_DISABLED=1

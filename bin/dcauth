@@ -15,6 +15,24 @@ check_command() {
     command -v "$1" >/dev/null 2>&1
 }
 
+token_type() {
+    case "$1" in
+        github_pat_*) printf "fine-grained-pat" ;;
+        gho_*) printf "oauth" ;;
+        ghu_*) printf "github-app-user" ;;
+        ghp_*) printf "classic-pat" ;;
+        "") printf "missing" ;;
+        *) printf "unknown" ;;
+    esac
+}
+
+is_copilot_token_supported() {
+    case "$1" in
+        github_pat_*|gho_*|ghu_*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 if ! command -v devpod >/dev/null 2>&1; then
     echo "DevPod CLI is required but was not found on PATH."
     exit 1
@@ -24,6 +42,8 @@ name="$1"
 agent_forwarding="${DCAUTH_AGENT_FORWARDING:-true}"
 send_env=(--send-env GH_PROMPT_DISABLED)
 github_token=""
+host_copilot_token="${COPILOT_GITHUB_TOKEN:-}"
+forward_classic_gh_token="${DCSSH_FORWARD_CLASSIC_GH_TOKEN:-false}"
 
 set +e
 
@@ -61,6 +81,18 @@ if check_command gh; then
     printf "host_gh_auth_status_exit=%s\n" "$?"
     if github_token="$(gh auth token 2>/dev/null)" && [ -n "$github_token" ]; then
         printf "host_gh_token=available\n"
+        printf "host_gh_token_type=%s\n" "$(token_type "$github_token")"
+        if is_copilot_token_supported "$github_token"; then
+            printf "host_gh_token_copilot_supported=yes\n"
+            printf "host_gh_token_forwarded_as_GH_TOKEN=yes\n"
+        else
+            printf "host_gh_token_copilot_supported=no\n"
+            if [ "$forward_classic_gh_token" = "true" ]; then
+                printf "host_gh_token_forwarded_as_GH_TOKEN=yes; DCSSH_FORWARD_CLASSIC_GH_TOKEN=true\n"
+            else
+                printf "host_gh_token_forwarded_as_GH_TOKEN=no; classic PAT would be read by Copilot CLI as GH_TOKEN\n"
+            fi
+        fi
     else
         printf "host_gh_token=missing\n"
     fi
@@ -71,14 +103,27 @@ fi
 set -e
 
 if [ -n "$github_token" ]; then
-    export GH_TOKEN="$github_token"
+    if is_copilot_token_supported "$github_token"; then
+        export GH_TOKEN="$github_token"
+        send_env+=(--send-env GH_TOKEN)
+    elif [ "$forward_classic_gh_token" = "true" ]; then
+        export GH_TOKEN="$github_token"
+        send_env+=(--send-env GH_TOKEN)
+    fi
+fi
+
+if is_copilot_token_supported "$host_copilot_token"; then
+    export COPILOT_GITHUB_TOKEN="$host_copilot_token"
+    send_env+=(--send-env COPILOT_GITHUB_TOKEN)
+elif is_copilot_token_supported "$github_token"; then
     export COPILOT_GITHUB_TOKEN="$github_token"
-    send_env+=(--send-env GH_TOKEN --send-env COPILOT_GITHUB_TOKEN)
+    send_env+=(--send-env COPILOT_GITHUB_TOKEN)
 fi
 
 export GH_PROMPT_DISABLED=1
 
-remote_script="$(cat <<'AUTH_CHECK'
+remote_script=""
+read -r -d '' remote_script <<'AUTH_CHECK' || true
 set +e
 
 section() {
@@ -87,6 +132,24 @@ section() {
 
 check_command() {
     command -v "$1" >/dev/null 2>&1
+}
+
+token_type() {
+    case "$1" in
+        github_pat_*) printf "fine-grained-pat" ;;
+        gho_*) printf "oauth" ;;
+        ghu_*) printf "github-app-user" ;;
+        ghp_*) printf "classic-pat" ;;
+        "") printf "missing" ;;
+        *) printf "unknown" ;;
+    esac
+}
+
+is_copilot_token_supported() {
+    case "$1" in
+        github_pat_*|gho_*|ghu_*) return 0 ;;
+        *) return 1 ;;
+    esac
 }
 
 load_brew() {
@@ -157,6 +220,7 @@ if check_command gh; then
     gh --version | head -n 1
     if [ -n "${GH_TOKEN:-}" ]; then
         printf "GH_TOKEN=available\n"
+        printf "GH_TOKEN_type=%s\n" "$(token_type "$GH_TOKEN")"
     else
         printf "GH_TOKEN=missing\n"
     fi
@@ -172,8 +236,17 @@ if check_command copilot; then
     printf "copilot_exit=%s\n" "$?"
     if [ -n "${COPILOT_GITHUB_TOKEN:-}" ]; then
         printf "COPILOT_GITHUB_TOKEN=available\n"
+        printf "COPILOT_GITHUB_TOKEN_type=%s\n" "$(token_type "$COPILOT_GITHUB_TOKEN")"
+        if is_copilot_token_supported "$COPILOT_GITHUB_TOKEN"; then
+            printf "COPILOT_GITHUB_TOKEN_supported=yes\n"
+        else
+            printf "COPILOT_GITHUB_TOKEN_supported=no\n"
+        fi
     else
         printf "COPILOT_GITHUB_TOKEN=missing\n"
+        if [ -n "${GH_TOKEN:-}" ]; then
+            printf "copilot_auth_warning=GH_TOKEN is %s; Copilot CLI will reject it if used as fallback\n" "$(token_type "$GH_TOKEN")"
+        fi
     fi
 else
     printf "copilot=missing\n"
@@ -189,6 +262,5 @@ fi
 
 exit 0
 AUTH_CHECK
-)"
 
 devpod ssh --silent --agent-forwarding="$agent_forwarding" "${send_env[@]}" "$name" --command "$remote_script"

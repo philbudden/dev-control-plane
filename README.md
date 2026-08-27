@@ -186,10 +186,20 @@ dcssh neovim-config
 This wraps:
 
 ```bash
-devpod ssh --agent-forwarding=true --send-env GH_TOKEN --send-env COPILOT_GITHUB_TOKEN --send-env GH_PROMPT_DISABLED <name>
+devpod ssh --agent-forwarding=true --send-env GH_PROMPT_DISABLED <name>
 ```
 
-The GitHub token is derived from the already-authenticated host GitHub CLI with `gh auth token`, exported only for the `devpod ssh` child process, and passed into the workspace as `GH_TOKEN` and `COPILOT_GITHUB_TOKEN`. The command does not run `gh auth login` in the workspace and does not write GitHub credentials into the container image, dotfiles, or repository. If the host GitHub CLI is not authenticated, the workspace still opens but `gh` and Copilot CLI will not receive token-based authentication.
+When the host GitHub CLI token is usable by both GitHub CLI and GitHub Copilot CLI, `dcssh` also sends `GH_TOKEN` and `COPILOT_GITHUB_TOKEN`. Supported Copilot token types are GitHub OAuth tokens (`gho_`), GitHub App user tokens (`ghu_`), and fine-grained personal access tokens (`github_pat_`). Classic personal access tokens (`ghp_`) are not forwarded by default because Copilot CLI also reads `GH_TOKEN` and rejects classic PATs.
+
+The command does not run `gh auth login` in the workspace and does not write GitHub credentials into the container image, dotfiles, or repository. If the host has `COPILOT_GITHUB_TOKEN` set to a supported token, that token is forwarded for Copilot. If the host GitHub CLI token is classic and no supported Copilot token is available, the workspace still opens with SSH agent forwarding but GitHub CLI and Copilot CLI do not receive token-based authentication from `dcssh`.
+
+To deliberately forward a classic host GitHub token for GitHub CLI-only work, run:
+
+```bash
+DCSSH_FORWARD_CLASSIC_GH_TOKEN=true dcssh neovim-config
+```
+
+Use that override only when Copilot CLI is not expected to use the same shell environment.
 
 ### `whereami`
 
@@ -229,8 +239,9 @@ The check reports:
 - whether `SSH_AUTH_SOCK` is present;
 - Git remotes and `git fetch --dry-run`;
 - `ssh-add -l`;
-- whether host-derived `GH_TOKEN` is visible to workspace `gh auth status`;
-- Copilot CLI presence/version and whether `COPILOT_GITHUB_TOKEN` is present;
+- host GitHub token type and whether it is forwarded as `GH_TOKEN`;
+- workspace `gh auth status` when `GH_TOKEN` is present;
+- Copilot CLI presence/version and whether `COPILOT_GITHUB_TOKEN` is present and supported;
 - CodeRabbit CLI presence/version.
 
 This command is deliberately diagnostic. It does not copy credentials, write tokens, run login flows, or change Git configuration. Use it before and after stopping/starting or deliberately recreating a workspace to see which authentication state survives.
