@@ -166,11 +166,11 @@ If the session does not already exist, `dca` creates a host tmux session with th
 2 edit      nvim inside dcssh <name>
 3 git       lazygit inside dcssh <name>
 4 ai        copilot inside dcssh <name>
-5 review    cr --interactive inside dcssh <name>
+5 review    cr inside dcssh <name>
 6 run       dcssh <name>
 ```
 
-The `edit`, `git`, `ai` and `review` windows initialise the workspace shell PATH before launching Neovim, LazyGit, GitHub Copilot CLI and CodeRabbit CLI. This matters because DevPod command mode does not load the interactive shell startup files. If a tool is missing, the window reports that and falls back to a workspace shell. CodeRabbit authentication is not configured by bootstrap; the review window only proves the terminal-native review surface is available.
+The `edit`, `git`, `ai` and `review` windows initialise the workspace shell PATH before launching Neovim, LazyGit, GitHub Copilot CLI and CodeRabbit CLI. This matters because DevPod command mode does not load the interactive shell startup files. If a tool is missing or exits with an error, the window reports the outcome and falls back to a workspace shell. CodeRabbit authentication is not configured by bootstrap; the review window only proves the terminal-native review surface is available.
 
 The `run` window is a spare workspace shell for commands that are expected to occupy the terminal, such as test runs, app servers, REPLs or logs. Keeping it separate leaves `shell` available for ordinary navigation and one-off commands.
 

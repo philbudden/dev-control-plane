@@ -23,7 +23,6 @@ fi
 
 control_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 name="$1"
-attach_cmd="${control_bin_dir}/dcssh $name"
 session_runtime_dir="${TMPDIR:-/tmp}/dev-control-plane-${USER:-user}"
 mkdir -p "$session_runtime_dir"
 
@@ -34,10 +33,10 @@ ai_script="${session_runtime_dir}/${name}-ai.sh"
 review_script="${session_runtime_dir}/${name}-review.sh"
 run_script="${session_runtime_dir}/${name}-run.sh"
 workspace_path_setup='if [ -f "$HOME/.config/shell/env.sh" ]; then . "$HOME/.config/shell/env.sh"; fi; if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"; fi; PATH="$HOME/.local/bin:$HOME/bin:$PATH"; export PATH;'
-edit_remote_command="${workspace_path_setup} if command -v nvim >/dev/null 2>&1; then exec nvim .; else echo \"Neovim is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
-git_remote_command="${workspace_path_setup} if command -v lazygit >/dev/null 2>&1; then exec lazygit; else echo \"LazyGit is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
-ai_remote_command="${workspace_path_setup} if command -v copilot >/dev/null 2>&1; then exec copilot; else echo \"GitHub Copilot CLI is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
-review_remote_command="${workspace_path_setup} if command -v cr >/dev/null 2>&1; then exec cr --interactive; elif command -v coderabbit >/dev/null 2>&1; then exec coderabbit --interactive; else echo \"CodeRabbit CLI is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
+edit_remote_command="${workspace_path_setup} if command -v nvim >/dev/null 2>&1; then nvim .; status=\$?; printf \"\nNeovim exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; else echo \"Neovim is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
+git_remote_command="${workspace_path_setup} if command -v lazygit >/dev/null 2>&1; then lazygit; status=\$?; printf \"\nLazyGit exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; else echo \"LazyGit is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
+ai_remote_command="${workspace_path_setup} if command -v copilot >/dev/null 2>&1; then copilot; status=\$?; printf \"\nGitHub Copilot CLI exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; else echo \"GitHub Copilot CLI is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
+review_remote_command="${workspace_path_setup} if command -v cr >/dev/null 2>&1; then cr; status=\$?; printf \"\nCodeRabbit CLI exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; elif command -v coderabbit >/dev/null 2>&1; then coderabbit; status=\$?; printf \"\nCodeRabbit CLI exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; else echo \"CodeRabbit CLI is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
 
 write_workspace_launcher() {
     local script="$1"
