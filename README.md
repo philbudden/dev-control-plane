@@ -23,6 +23,18 @@ This repo does not manage:
 - Docker Desktop, OrbStack, Docker Engine, or WSL provisioning.
 - Project-specific devcontainer definitions.
 
+## Test Devcontainer
+
+This repository includes a basic `.devcontainer/` definition, but it is not the runtime environment for the host control plane. The control-plane commands are still host commands.
+
+The devcontainer exists as a test workspace for devcontainer-specific behaviour being developed here, especially checks such as:
+
+- host-only wrappers refusing to run when `DEVCONTAINER=true`;
+- `whereami` reporting a `linux | devcontainer | ...` context;
+- authentication diagnostics seeing ordinary in-container tools such as Git, SSH and GitHub CLI.
+
+The test container deliberately stays small. It uses a Microsoft Ubuntu 24.04 devcontainers base image pinned to `linux/amd64`, installs only basic diagnostic tools, sets `DEVCONTAINER=true`, and does not run this repo's host bootstrap.
+
 ## Prerequisites
 
 Install these on the host before using this repo:
