@@ -89,6 +89,26 @@ check_command() {
     command -v "$1" >/dev/null 2>&1
 }
 
+load_brew() {
+    if check_command brew; then
+        return 0
+    fi
+
+    if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        return 0
+    fi
+
+    if [ -x /opt/homebrew/bin/brew ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+        return 0
+    fi
+
+    return 1
+}
+
+load_brew >/dev/null 2>&1 || true
+
 redact_url() {
     printf "%s" "$1" | sed -E 's#(https?://)[^/@]+(:[^/@]+)?@#\1***@#'
 }
