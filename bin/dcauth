@@ -17,8 +17,9 @@ if ! command -v devpod >/dev/null 2>&1; then
 fi
 
 name="$1"
+agent_forwarding="${DCAUTH_AGENT_FORWARDING:-true}"
 
-devpod ssh "$name" <<'AUTH_CHECK'
+remote_script="$(cat <<'AUTH_CHECK'
 set +e
 
 section() {
@@ -54,7 +55,7 @@ if check_command git; then
                 printf "%s %s\n" "$remote" "$(redact_url "$url")"
             fi
         done
-        git fetch --dry-run
+        git fetch --dry-run 2>&1
         printf "git_fetch_dry_run_exit=%s\n" "$?"
     else
         printf "Not inside a Git work tree.\n"
@@ -65,7 +66,7 @@ fi
 
 section "SSH agent"
 if check_command ssh-add; then
-    ssh-add -l
+    ssh-add -l 2>&1
     printf "ssh_add_exit=%s\n" "$?"
 else
     printf "ssh-add=missing\n"
@@ -74,7 +75,7 @@ fi
 section "GitHub CLI"
 if check_command gh; then
     gh --version | head -n 1
-    gh auth status
+    gh auth status 2>&1
     printf "gh_auth_status_exit=%s\n" "$?"
 else
     printf "gh=missing\n"
@@ -82,7 +83,7 @@ fi
 
 section "GitHub Copilot CLI"
 if check_command copilot; then
-    copilot --version
+    copilot --version 2>&1
     printf "copilot_exit=%s\n" "$?"
 else
     printf "copilot=missing\n"
@@ -90,9 +91,14 @@ fi
 
 section "CodeRabbit CLI"
 if check_command cr; then
-    cr --version
+    cr --version 2>&1
     printf "cr_version_exit=%s\n" "$?"
 else
     printf "cr=missing\n"
 fi
+
+exit 0
 AUTH_CHECK
+)"
+
+devpod ssh --silent --agent-forwarding="$agent_forwarding" "$name" --command "$remote_script"
