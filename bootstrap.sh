@@ -15,6 +15,8 @@ if ! command -v brew >/dev/null 2>&1; then
     exit 1
 fi
 
+brew_bin_dir="$(brew --prefix)/bin"
+
 if ! command -v git >/dev/null 2>&1; then
     echo "git is required before running this bootstrap."
     exit 1
@@ -49,10 +51,17 @@ fi
 
 mkdir -p "${bin_dir}"
 mkdir -p "${local_bin_dir}"
+mkdir -p "${brew_bin_dir}"
 mkdir -p "${tmux_config_dir}"
 
 for script in "${repo_dir}"/bin/*; do
-    for link_dir in "${bin_dir}" "${local_bin_dir}"; do
+    linked_dirs=":"
+    for link_dir in "${bin_dir}" "${local_bin_dir}" "${brew_bin_dir}"; do
+        case "${linked_dirs}" in
+            *":${link_dir}:"*) continue ;;
+        esac
+        linked_dirs="${linked_dirs}${link_dir}:"
+
         target="${link_dir}/$(basename "$script")"
         if [ -L "$target" ] || [ ! -e "$target" ]; then
             ln -sfn "$script" "$target"
@@ -68,4 +77,4 @@ else
     echo "Skipping ${tmux_config_file}; a non-symlink file already exists."
 fi
 
-echo "Done. Ensure ${bin_dir} or ${local_bin_dir} is on PATH."
+echo "Done. Ensure ${bin_dir}, ${local_bin_dir}, or ${brew_bin_dir} is on PATH."

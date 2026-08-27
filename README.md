@@ -67,7 +67,7 @@ Then it runs this repo's host-only package layer:
 brew bundle --file Brewfile
 ```
 
-Then it links scripts from `bin/` into both `~/bin` and `~/.local/bin` when there is no existing non-symlink file in the way. Linking both locations keeps the commands visible across macOS, WSL2, Ubuntu login shells, and shells that only include one of the common user-bin directories.
+Then it links scripts from `bin/` into `~/bin`, `~/.local/bin`, and the active Homebrew prefix's `bin` directory when there is no existing non-symlink file in the way. Linking all three locations keeps the commands visible across macOS, WSL2, Ubuntu login shells, and shells that only include one of the common user-bin directories.
 
 It also links the host tmux configuration to:
 
