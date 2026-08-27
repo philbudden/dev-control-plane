@@ -12,5 +12,14 @@ if ! command -v devpod >/dev/null 2>&1; then
 fi
 
 name="${1:-$(basename "$PWD")}"
+dotfiles_enabled="${DCU_DOTFILES:-true}"
+dotfiles_repo="${DCU_DOTFILES_REPO:-${DOTFILES_REPO:-https://github.com/philbudden/dotfiles.git}}"
+dotfiles_script="${DCU_DOTFILES_SCRIPT:-bootstrap.sh}"
 
-devpod up . --id "$name" --ide none
+up_args=(up . --id "$name" --ide none)
+
+if [ "$dotfiles_enabled" != "false" ] && [ "$dotfiles_enabled" != "0" ]; then
+    up_args+=(--dotfiles "$dotfiles_repo" --dotfiles-script "$dotfiles_script")
+fi
+
+devpod "${up_args[@]}"

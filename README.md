@@ -142,7 +142,22 @@ dcu neovim-config
 This runs:
 
 ```bash
-devpod up . --id <name> --ide none
+devpod up . --id <name> --ide none --dotfiles https://github.com/philbudden/dotfiles.git --dotfiles-script bootstrap.sh
+```
+
+DevPod clones the dotfiles repository into the workspace and runs the selected install script during workspace setup, so newly created workspaces receive the shared terminal baseline without a separate manual bootstrap.
+
+The dotfiles source follows the same default as host bootstrap and can be overridden for testing:
+
+```bash
+DCU_DOTFILES_REPO=https://github.com/example/dotfiles.git dcu
+DCU_DOTFILES_SCRIPT=install.sh dcu
+```
+
+Disable automatic dotfiles for a one-off workspace:
+
+```bash
+DCU_DOTFILES=false dcu
 ```
 
 ### `dca`
