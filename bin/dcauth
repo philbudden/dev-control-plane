@@ -53,6 +53,7 @@ else
 fi
 
 if check_command gh; then
+    section "Host GitHub CLI"
     gh --version | head -n 1
     gh auth status 2>&1
     printf "host_gh_auth_status_exit=%s\n" "$?"
@@ -115,11 +116,11 @@ else
     printf "ssh-add=missing\n"
 fi
 
-section "GitHub CLI"
+section "Workspace GitHub CLI"
+printf "workspace_gh_auth_model=host-owned; do not run gh auth login in the workspace\n"
 if check_command gh; then
     gh --version | head -n 1
-    gh auth status 2>&1
-    printf "gh_auth_status_exit=%s\n" "$?"
+    printf "gh_auth_status=skipped; workspace GitHub CLI credentials are intentionally not configured\n"
 else
     printf "gh=missing\n"
 fi
