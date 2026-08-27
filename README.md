@@ -67,7 +67,7 @@ Then it runs this repo's host-only package layer:
 brew bundle --file Brewfile
 ```
 
-Then it links scripts from `bin/` into `~/bin` when there is no existing non-symlink file in the way.
+Then it links scripts from `bin/` into both `~/bin` and `~/.local/bin` when there is no existing non-symlink file in the way. Linking both locations keeps the commands visible across macOS, WSL2, Ubuntu login shells, and shells that only include one of the common user-bin directories.
 
 It also links the host tmux configuration to:
 
@@ -292,6 +292,10 @@ After bootstrap, verify the host control-plane tools:
 devpod version
 tmux -V
 lazydocker --version
+command -v dcu
+command -v dca
+command -v dcr
+command -v dcauth
 gh --version
 rg --version
 fd --version

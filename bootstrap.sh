@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bin_dir="${HOME}/bin"
+local_bin_dir="${HOME}/.local/bin"
 tmux_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/tmux"
 tmux_config_file="${tmux_config_dir}/tmux.conf"
 dotfiles_repo="${DOTFILES_REPO:-https://github.com/philbudden/dotfiles.git}"
@@ -47,15 +48,18 @@ if ! command -v devpod >/dev/null 2>&1; then
 fi
 
 mkdir -p "${bin_dir}"
+mkdir -p "${local_bin_dir}"
 mkdir -p "${tmux_config_dir}"
 
 for script in "${repo_dir}"/bin/*; do
-    target="${bin_dir}/$(basename "$script")"
-    if [ -L "$target" ] || [ ! -e "$target" ]; then
-        ln -sfn "$script" "$target"
-    else
-        echo "Skipping ${target}; a non-symlink file already exists."
-    fi
+    for link_dir in "${bin_dir}" "${local_bin_dir}"; do
+        target="${link_dir}/$(basename "$script")"
+        if [ -L "$target" ] || [ ! -e "$target" ]; then
+            ln -sfn "$script" "$target"
+        else
+            echo "Skipping ${target}; a non-symlink file already exists."
+        fi
+    done
 done
 
 if [ -L "${tmux_config_file}" ] || [ ! -e "${tmux_config_file}" ]; then
@@ -64,4 +68,4 @@ else
     echo "Skipping ${tmux_config_file}; a non-symlink file already exists."
 fi
 
-echo "Done. Ensure ${bin_dir} is on PATH."
+echo "Done. Ensure ${bin_dir} or ${local_bin_dir} is on PATH."
