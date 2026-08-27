@@ -24,6 +24,23 @@ fi
 control_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 name="$1"
 attach_cmd="${control_bin_dir}/dcssh $name"
+session_runtime_dir="${TMPDIR:-/tmp}/dev-control-plane-${USER:-user}"
+mkdir -p "$session_runtime_dir"
+
+ai_script="${session_runtime_dir}/${name}-ai.sh"
+review_script="${session_runtime_dir}/${name}-review.sh"
+
+cat >"$ai_script" <<AI_SCRIPT
+#!/usr/bin/env bash
+exec "${control_bin_dir}/dcssh" "${name}" --command 'if command -v copilot >/dev/null 2>&1; then exec copilot; else echo "GitHub Copilot CLI is not installed in this workspace."; exec "\${SHELL:-/bin/sh}"; fi'
+AI_SCRIPT
+
+cat >"$review_script" <<REVIEW_SCRIPT
+#!/usr/bin/env bash
+exec "${control_bin_dir}/dcssh" "${name}" --command 'if command -v cr >/dev/null 2>&1; then exec cr --interactive; elif command -v coderabbit >/dev/null 2>&1; then exec coderabbit --interactive; else echo "CodeRabbit CLI is not installed in this workspace."; exec "\${SHELL:-/bin/sh}"; fi'
+REVIEW_SCRIPT
+
+chmod +x "$ai_script" "$review_script"
 
 if tmux has-session -t "$name" 2>/dev/null; then
     tmux set-option -t "$name" -q @dev_control_workspace "$name"
@@ -37,8 +54,8 @@ tmux new-session -d -s "$name" -n edit "$attach_cmd"
 tmux new-window -t "$name:" -n shell "$attach_cmd"
 tmux new-window -t "$name:" -n git "$attach_cmd"
 tmux new-window -t "$name:" -n docker
-tmux new-window -t "$name:" -n ai "$attach_cmd"
-tmux new-window -t "$name:" -n review "$attach_cmd"
+tmux new-window -t "$name:" -n ai "$ai_script"
+tmux new-window -t "$name:" -n review "$review_script"
 tmux new-window -t "$name:" -n run "$attach_cmd"
 tmux set-option -t "$name" -q @dev_control_workspace "$name"
 tmux select-window -t "$name:1"

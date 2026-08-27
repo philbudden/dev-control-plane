@@ -166,12 +166,12 @@ If the session does not already exist, `dca` creates a host tmux session with th
 2 shell     dcssh <name>
 3 git       dcssh <name>
 4 docker    host shell
-5 ai        dcssh <name>
-6 review    dcssh <name>
+5 ai        copilot inside dcssh <name>
+6 review    cr --interactive inside dcssh <name>
 7 run       dcssh <name>
 ```
 
-The first version deliberately starts attached shells rather than automatically launching `nvim`, `lazygit`, Copilot or CodeRabbit. That keeps the attach path simple while proving the tmux session/window model.
+The `ai` and `review` windows launch GitHub Copilot CLI and CodeRabbit CLI when those tools are installed in the workspace. If a tool is missing, the window reports that and falls back to a workspace shell. CodeRabbit authentication is not configured by bootstrap; the review window only proves the terminal-native review surface is available.
 
 When `dca` is run from inside an existing tmux session, it uses `tmux switch-client` rather than nesting tmux inside tmux.
 
