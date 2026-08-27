@@ -23,6 +23,18 @@ This repo does not manage:
 - Docker Desktop, OrbStack, Docker Engine, or WSL provisioning.
 - Project-specific devcontainer definitions.
 
+## Test Devcontainer
+
+This repository includes a basic `.devcontainer/` definition, but it is not the runtime environment for the host control plane. The control-plane commands are still host commands.
+
+The devcontainer exists as a test workspace for devcontainer-specific behaviour being developed here, especially checks such as:
+
+- host-only wrappers refusing to run when `DEVCONTAINER=true`;
+- `whereami` reporting a `linux | devcontainer | ...` context;
+- authentication diagnostics seeing ordinary in-container tools such as Git, SSH and GitHub CLI.
+
+The test container deliberately stays small. It uses a Microsoft Ubuntu 24.04 devcontainers base image pinned to `linux/amd64`, installs only basic diagnostic tools, sets `DEVCONTAINER=true`, and does not run this repo's host bootstrap.
+
 ## Prerequisites
 
 Install these on the host before using this repo:
@@ -90,6 +102,7 @@ The shared baseline is installed from `~/Developer/dotfiles/Brewfile`. It includ
 - `jq`
 - `lazygit`
 - `neovim`
+- `copilot-cli`
 - `ripgrep`
 - `starship`
 - `stow`
@@ -149,18 +162,34 @@ tmux attach-session -t <name>
 If the session does not already exist, `dca` creates a host tmux session with these standard windows:
 
 ```text
-1 edit      devpod ssh <name>
-2 shell     devpod ssh <name>
-3 git       devpod ssh <name>
+1 edit      dcssh <name>
+2 shell     dcssh <name>
+3 git       dcssh <name>
 4 docker    host shell
-5 ai        devpod ssh <name>
-6 review    devpod ssh <name>
-7 run       devpod ssh <name>
+5 ai        dcssh <name>
+6 review    dcssh <name>
+7 run       dcssh <name>
 ```
 
 The first version deliberately starts attached shells rather than automatically launching `nvim`, `lazygit`, Copilot or CodeRabbit. That keeps the attach path simple while proving the tmux session/window model.
 
 When `dca` is run from inside an existing tmux session, it uses `tmux switch-client` rather than nesting tmux inside tmux.
+
+### `dcssh`
+
+Attach to a DevPod workspace with host authentication forwarded into the session:
+
+```bash
+dcssh neovim-config
+```
+
+This wraps:
+
+```bash
+devpod ssh --agent-forwarding=true --send-env GH_TOKEN --send-env COPILOT_GITHUB_TOKEN --send-env GH_PROMPT_DISABLED <name>
+```
+
+The GitHub token is derived from the already-authenticated host GitHub CLI with `gh auth token`, exported only for the `devpod ssh` child process, and passed into the workspace as `GH_TOKEN` and `COPILOT_GITHUB_TOKEN`. The command does not run `gh auth login` in the workspace and does not write GitHub credentials into the container image, dotfiles, or repository. If the host GitHub CLI is not authenticated, the workspace still opens but `gh` and Copilot CLI will not receive token-based authentication.
 
 ### `whereami`
 
@@ -200,8 +229,8 @@ The check reports:
 - whether `SSH_AUTH_SOCK` is present;
 - Git remotes and `git fetch --dry-run`;
 - `ssh-add -l`;
-- `gh auth status`;
-- Copilot CLI presence/version;
+- whether host-derived `GH_TOKEN` is visible to workspace `gh auth status`;
+- Copilot CLI presence/version and whether `COPILOT_GITHUB_TOKEN` is present;
 - CodeRabbit CLI presence/version.
 
 This command is deliberately diagnostic. It does not copy credentials, write tokens, run login flows, or change Git configuration. Use it before and after stopping/starting or deliberately recreating a workspace to see which authentication state survives.
