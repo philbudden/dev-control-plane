@@ -162,36 +162,31 @@ DCU_DOTFILES=false dcu
 
 ### `dca`
 
-Attach to a DevPod workspace inside a tmux session with the same name:
+Attach to a DevPod workspace inside a single-window tmux session with the same name:
 
 ```bash
 dca neovim-config
 ```
 
-This runs:
+If the session already exists and has one window, `dca` marks it as a DevPod-backed project session and attaches to it:
 
 ```bash
 tmux attach-session -t <name>
 ```
 
-If the session does not already exist, `dca` creates a host tmux session with these standard windows:
+When `dca` is run from inside an existing tmux session, it uses `tmux switch-client` rather than nesting tmux inside tmux.
+
+If the session does not already exist, `dca` creates one host tmux session with exactly one window:
 
 ```text
-1 shell     dcssh <name>
-2 edit      nvim inside dcssh <name>
-3 git       lazygit inside dcssh <name>
-4 ai        copilot inside dcssh <name>
-5 review    cr inside dcssh <name>
-6 run       dcssh <name>
+1 nvim      nvim inside dcssh <name>
 ```
 
-The `edit`, `git`, `ai` and `review` windows initialise the workspace shell PATH before launching Neovim, LazyGit, GitHub Copilot CLI and CodeRabbit CLI. This matters because DevPod command mode does not load the interactive shell startup files. If a tool is missing or exits with an error, the window reports the outcome and falls back to a workspace shell. CodeRabbit authentication is not configured by bootstrap; the review window only proves the terminal-native review surface is available.
+The `nvim` window connects through `dcssh`, so it keeps the same DevPod SSH path, SSH agent forwarding, and GitHub/Copilot token bridging as a normal workspace shell. It initialises the workspace shell PATH before launching Neovim because DevPod command mode does not load the interactive shell startup files.
 
-The `run` window is a spare workspace shell for commands that are expected to occupy the terminal, such as test runs, app servers, REPLs or logs. Keeping it separate leaves `shell` available for ordinary navigation and one-off commands.
+If Neovim exits or is missing inside the workspace, the window reports that outcome and falls back to a workspace shell. This keeps the session usable for repair without creating separate `shell`, `edit`, `git`, `ai`, `review` or `run` windows. LazyGit, GitHub Copilot CLI, CodeRabbit CLI and other tools are expected to be opened from Neovim's terminal-oriented UI.
 
-Fresh devcontainers that have not yet run the dotfiles bootstrap may not have Neovim, LazyGit, Copilot CLI or CodeRabbit CLI installed. In that state, `shell` and `run` should still attach to the workspace; the tool-specific windows will show the missing tool and fall back to a workspace shell.
-
-When `dca` is run from inside an existing tmux session, it uses `tmux switch-client` rather than nesting tmux inside tmux.
+If an existing session with the requested name has multiple windows, `dca` refuses to attach and leaves it untouched. This avoids closing old-style sessions that may still contain live processes. Finish or remove the old session, then run `dca <name>` again to create the new single-window layout.
 
 ### `dcssh`
 
@@ -329,10 +324,16 @@ dcu neovim-config
 dca neovim-config
 ```
 
-Inside the attached workspace, confirm the devcontainer dotfiles bootstrap has provided the inner environment.
+Inside the attached workspace, confirm the tmux session has one window named `nvim` and that Neovim opens inside the devcontainer.
 
 Then check authentication propagation:
 
 ```bash
 dcauth neovim-config
+```
+
+For a local wrapper regression test that does not require a real DevPod workspace, run:
+
+```bash
+bash tests/dca_single_window_test.sh
 ```

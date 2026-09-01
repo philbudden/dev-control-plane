@@ -26,59 +26,25 @@ name="$1"
 session_runtime_dir="${TMPDIR:-/tmp}/dev-control-plane-${USER:-user}"
 mkdir -p "$session_runtime_dir"
 
-shell_script="${session_runtime_dir}/${name}-shell.sh"
-edit_script="${session_runtime_dir}/${name}-edit.sh"
-git_script="${session_runtime_dir}/${name}-git.sh"
-ai_script="${session_runtime_dir}/${name}-ai.sh"
-review_script="${session_runtime_dir}/${name}-review.sh"
-run_script="${session_runtime_dir}/${name}-run.sh"
+nvim_script="${session_runtime_dir}/${name}-nvim.sh"
 workspace_path_setup='if [ -f "$HOME/.config/shell/env.sh" ]; then . "$HOME/.config/shell/env.sh"; fi; if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"; fi; PATH="$HOME/.local/bin:$HOME/bin:$PATH"; export PATH;'
-edit_remote_command="${workspace_path_setup} if command -v nvim >/dev/null 2>&1; then nvim .; status=\$?; printf \"\nNeovim exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; else echo \"Neovim is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
-git_remote_command="${workspace_path_setup} if command -v lazygit >/dev/null 2>&1; then lazygit; status=\$?; printf \"\nLazyGit exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; else echo \"LazyGit is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
-ai_remote_command="${workspace_path_setup} if command -v copilot >/dev/null 2>&1; then copilot; status=\$?; printf \"\nGitHub Copilot CLI exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; else echo \"GitHub Copilot CLI is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
-review_remote_command="${workspace_path_setup} if command -v cr >/dev/null 2>&1; then cr; status=\$?; printf \"\nCodeRabbit CLI exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; elif command -v coderabbit >/dev/null 2>&1; then coderabbit; status=\$?; printf \"\nCodeRabbit CLI exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; else echo \"CodeRabbit CLI is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
-
-write_workspace_launcher() {
-    local script="$1"
-    local label="$2"
-    local workspace="$3"
-
-    {
-        printf '#!/usr/bin/env bash\n'
-        printf '%q %q\n' "${control_bin_dir}/dcssh" "$workspace"
-        printf 'status=$?\n'
-        printf 'printf "\\n%s exited with status %%s. Leaving this host shell open so the error is visible.\\n" "$status"\n' "$label"
-        printf 'exec "${SHELL:-/bin/sh}"\n'
-    } >"$script"
-    chmod +x "$script"
-}
-
-write_workspace_launcher "$shell_script" "Workspace shell" "$name"
-write_workspace_launcher "$run_script" "Workspace run shell" "$name"
+nvim_remote_command="${workspace_path_setup} if command -v nvim >/dev/null 2>&1; then nvim .; status=\$?; printf \"\nNeovim exited with status %s. Leaving this workspace shell open.\n\" \"\$status\"; exec \"\${SHELL:-/bin/sh}\"; else echo \"Neovim is not installed in this workspace.\"; exec \"\${SHELL:-/bin/sh}\"; fi"
 
 {
     printf '#!/usr/bin/env bash\n'
-    printf 'exec %q %q --command %q\n' "${control_bin_dir}/dcssh" "$name" "$edit_remote_command"
-} >"$edit_script"
-
-{
-    printf '#!/usr/bin/env bash\n'
-    printf 'exec %q %q --command %q\n' "${control_bin_dir}/dcssh" "$name" "$git_remote_command"
-} >"$git_script"
-
-{
-    printf '#!/usr/bin/env bash\n'
-    printf 'exec %q %q --command %q\n' "${control_bin_dir}/dcssh" "$name" "$ai_remote_command"
-} >"$ai_script"
-
-{
-    printf '#!/usr/bin/env bash\n'
-    printf 'exec %q %q --command %q\n' "${control_bin_dir}/dcssh" "$name" "$review_remote_command"
-} >"$review_script"
-
-chmod +x "$edit_script" "$git_script" "$ai_script" "$review_script"
+    printf 'exec %q %q --command %q\n' "${control_bin_dir}/dcssh" "$name" "$nvim_remote_command"
+} >"$nvim_script"
+chmod +x "$nvim_script"
 
 if tmux has-session -t "$name" 2>/dev/null; then
+    window_count="$(tmux list-windows -t "$name" 2>/dev/null | wc -l | tr -d '[:space:]')"
+    if [ "${window_count:-0}" -gt 1 ]; then
+        echo "tmux session '$name' already exists with $window_count windows."
+        echo "dca now manages a single Neovim window and will not close existing windows automatically."
+        echo "Detach, finish or remove the old session, then run: dca $name"
+        exit 1
+    fi
+
     tmux set-option -t "$name" -q @dev_control_workspace "$name"
     if [ -n "${TMUX:-}" ]; then
         exec tmux switch-client -t "$name"
@@ -86,12 +52,7 @@ if tmux has-session -t "$name" 2>/dev/null; then
     exec tmux attach-session -t "$name"
 fi
 
-tmux new-session -d -s "$name" -n shell "$shell_script"
-tmux new-window -t "$name:" -n edit "$edit_script"
-tmux new-window -t "$name:" -n git "$git_script"
-tmux new-window -t "$name:" -n ai "$ai_script"
-tmux new-window -t "$name:" -n review "$review_script"
-tmux new-window -t "$name:" -n run "$run_script"
+tmux new-session -d -s "$name" -n nvim "$nvim_script"
 tmux set-option -t "$name" -q @dev_control_workspace "$name"
 tmux select-window -t "$name:1"
 
