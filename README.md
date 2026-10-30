@@ -12,10 +12,11 @@ This repo manages:
 - Host-only terminal tools through Homebrew.
 - Small host-side wrapper commands for DevPod CLI workflows.
 - The control-plane layer for `terminal -> tmux -> devcontainer -> Neovim`.
+- Optional host Ghostty configuration.
 
 This repo does not manage:
 
-- GUI applications such as Ghostty.
+- Installation of GUI applications such as Ghostty.
 - DevPod GUI.
 - Host shell dotfiles directly; those remain owned by `~/Developer/dotfiles`.
 - Neovim configuration.
@@ -76,6 +77,8 @@ It also links the host tmux configuration to:
 ```
 
 If that file already exists and is not a symlink, bootstrap leaves it alone.
+
+Bootstrap also links the optional Ghostty configuration on macOS to `~/Library/Application Support/com.mitchellh.ghostty/config.ghostty` and on other hosts to `${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config.ghostty`. Ghostty does not need to be installed. An existing non-empty file, directory, or unrelated symlink is left untouched. An empty regular file is preserved as `config.ghostty.empty-backup` before linking, unless that backup already exists, in which case bootstrap skips it. Ghostty's macOS-specific configuration takes precedence over its XDG configuration if both exist.
 
 DevPod CLI is also required for the wrapper commands, but it is not installed by this bootstrap. The current Homebrew `devpod` package is a cask for the DevPod UI app, so this repo deliberately avoids it. Install the CLI-only DevPod binary using the official DevPod CLI install instructions, then use this repo for the rest of the host terminal control plane.
 
@@ -264,6 +267,10 @@ The check reports:
 - CodeRabbit CLI presence/version.
 
 This command is deliberately diagnostic. It does not copy credentials, write tokens, run login flows, or change Git configuration. Use it before and after stopping/starting or deliberately recreating a workspace to see which authentication state survives.
+
+## Ghostty
+
+The optional host configuration lives at `config/ghostty/config.ghostty`. It sets a 15-point font and the built-in Gruvbox Dark theme. Reload Ghostty with `Cmd+Shift+,` on macOS or restart it; terminals whose font size was manually adjusted can retain that size until a new terminal is opened. The configuration is linked even when Ghostty is absent, including on WSL2.
 
 ## Tmux
 

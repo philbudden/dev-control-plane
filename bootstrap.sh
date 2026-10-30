@@ -77,4 +77,35 @@ else
     echo "Skipping ${tmux_config_file}; a non-symlink file already exists."
 fi
 
+# Ghostty is optional. Link its configuration without requiring the application.
+if [ "$(uname -s)" = "Darwin" ]; then
+    ghostty_config_dir="${HOME}/Library/Application Support/com.mitchellh.ghostty"
+else
+    ghostty_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ghostty"
+fi
+ghostty_config_file="${ghostty_config_dir}/config.ghostty"
+ghostty_source="${repo_dir}/config/ghostty/config.ghostty"
+mkdir -p "${ghostty_config_dir}"
+if [ -L "${ghostty_config_file}" ]; then
+    if [ "$(readlink "${ghostty_config_file}")" = "${ghostty_source}" ]; then
+        echo "Ghostty configuration already linked."
+    else
+        echo "Skipping ${ghostty_config_file}; a different symlink already exists."
+    fi
+elif [ -f "${ghostty_config_file}" ] && [ ! -s "${ghostty_config_file}" ]; then
+    backup="${ghostty_config_file}.empty-backup"
+    if [ -e "${backup}" ] || [ -L "${backup}" ]; then
+        echo "Skipping ${ghostty_config_file}; backup ${backup} already exists."
+    else
+        mv "${ghostty_config_file}" "${backup}"
+        ln -s "${ghostty_source}" "${ghostty_config_file}"
+        echo "Linked Ghostty configuration; preserved empty file at ${backup}."
+    fi
+elif [ -e "${ghostty_config_file}" ]; then
+    echo "Skipping ${ghostty_config_file}; an existing file or directory is in the way."
+else
+    ln -s "${ghostty_source}" "${ghostty_config_file}"
+    echo "Linked Ghostty configuration."
+fi
+
 echo "Done. Ensure ${bin_dir}, ${local_bin_dir}, or ${brew_bin_dir} is on PATH."
